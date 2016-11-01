@@ -41,7 +41,11 @@ int run_tests(void)
     if (fread(key,64,1,f)!=1) {
       fprintf(stderr,"Failed to read 64 bytes from /dev/random.\n");
     }    
-    if (last_time!=time(0)) { printf("%d\n",i); last_time=time(0); }
+    if (last_time!=time(0)) {
+      printf("%d (%.2f%%)\r",i,i*100.0/MAX_KEYS);
+      fflush(stdout);
+      last_time=time(0);
+    }
   }
   long long end=gettime_us();
   long long key_gen_time=end-start;
@@ -56,7 +60,11 @@ int run_tests(void)
       bcopy(key,test_keys[test_key_count++],64);
     }
     insert_key(key,sizeof key);
-    if (last_time!=time(0)) { printf("%d\n",i); last_time=time(0); }
+    if (last_time!=time(0)) {
+      printf("%d (%.2f%%)\r",i,i*100.0/MAX_KEYS);
+      fflush(stdout);
+      last_time=time(0);
+    }
   }
   end=gettime_us();
   long long key_insert_time=end-start;
@@ -66,6 +74,7 @@ int run_tests(void)
 	 (key_insert_time-key_gen_time)*1.0/MAX_KEYS);
 
   // Measure density in vectors
+  printf("Measuring vector density...\n");
   for(int v=0;v<NUM_VECTORS;v++) {
     int bitcount=0;
     for(unsigned long long i=0;i<VECTOR_LENGTH;i++)
@@ -75,9 +84,15 @@ int run_tests(void)
       printf("Vector #%d has erroneously high density of %.2f%%.\n",
 	     v,density);
     }
+    if (last_time!=time(0)) {
+      printf("%d (%.2f%%)\r",v,v*100.0/NUM_VECTORS);
+      fflush(stdout);
+      last_time=time(0);
+    }
   }
 
   // Measure entropy of each vector, be compressing using interpolative coding.
+  printf("Compressing each vector...\n");
   start=gettime_us();
   for(int v=0;v<NUM_VECTORS;v++) {
     int list_length=0;
@@ -96,6 +111,13 @@ int run_tests(void)
     range_emit_stable_bits(c);
     compressed_bits+=c->bits_used;
     range_coder_free(c);
+
+    if (last_time!=time(0)) {
+      printf("%d (%.2f%%)\r",v,v*100.0/NUM_VECTORS);
+      fflush(stdout);
+      last_time=time(0);
+    }
+
   }
   end=gettime_us();
   printf("Vectors compress to a total of %lld bits (%.2fMB).\n",
