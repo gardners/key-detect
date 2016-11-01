@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #include "keydetect.h"
+#include "arithmetic.h"
 
 long long gettime_us()
 {
@@ -68,6 +69,29 @@ int main(int argc,char **argv)
 	     v,density);
     }
   }
+
+  // Measure entropy of each vector, be compressing using interpolative coding.
+  int list[VECTOR_LENGTH];
+  long long compressed_bits=0;
+  for(int v=0;v<NUM_VECTORS;v++) {
+    int list_length=0;
+    for(int i=0;i<VECTOR_LENGTH;i++)
+      if (get_vector_bit(v,i)) list[list_length++]=i;
+
+    // Allow plenty of space
+    range_coder *c=range_new_coder(list_length*sizeof(int)*2);
+    ic_encode_recursive(list,list_length,VECTOR_LENGTH,c);
+    range_emit_stable_bits(c);
+    compressed_bits+=c->bits_used;
+    range_coder_free(c);
+  }
+  printf("Vectors compress to a total of %lld bits (%.2fMB).\n",
+	 compressed_bits,compressed_bits*1.0/(8*1024*1024));
+  printf("Average compressed vector is %.2fKB\n",
+	 compressed_bits*1.0/(8*1024)/NUM_VECTORS);
+  printf("Average compressed query data should be %.4fKB\n",
+	 compressed_bits*1.0/(8*1024)*NUM_QUERIES/NUM_VECTORS);
+  
 
   // Now look-up each key to make sure we can find it
   printf("Verifying that all inserted keys can be found...\n");

@@ -4,9 +4,10 @@ LOPT=
 
 HEADERS=keydetect.h \
 	sha2.h \
+	arithmetic.h \
 	Makefile
 
-SOURCES=datastructure.c main.c sha2.c
+SOURCES=datastructure.c main.c sha2.c arithmetic.c gsinterpolative.c
 
 all:	test
 
