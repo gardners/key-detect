@@ -1,5 +1,5 @@
 CC=cc
-COPT=-Wall -g -O3
+COPT=-Wall -g -Ofast
 LOPT=
 
 HEADERS=keydetect.h \

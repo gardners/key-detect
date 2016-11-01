@@ -7,7 +7,9 @@
 #include "keydetect.h"
 #include "arithmetic.h"
 
-long long gettime_us()
+long long gettime_us(void);
+
+long long gettime_us(void)
 {
   struct timeval nowtv;
   // If gettimeofday() fails or returns an invalid value, all else is lost!
@@ -18,14 +20,19 @@ long long gettime_us()
   return nowtv.tv_sec * 1000000LL + nowtv.tv_usec;
 }
 
-int main(int argc,char **argv)
-{
-  printf("Testing insertion speed of %d keys...\n",MAX_KEYS);
+int list[MAX_KEYS];
+long long compressed_bits=0;
 
+int run_tests(void)
+  {
   FILE *f=fopen("/dev/random","r");
 
   unsigned char test_keys[1000][64];
   int test_key_count=0;
+
+  vector_initialise();
+  printf("Testing insertion speed of %lld keys...\n",MAX_KEYS);
+ 
   
   long long start=gettime_us();
   unsigned char key[64];
@@ -38,8 +45,8 @@ int main(int argc,char **argv)
   }
   long long end=gettime_us();
   long long key_gen_time=end-start;
-  printf("Key generation (without inserting) of %d keys required %lldusec.\n",
-	 MAX_KEYS,key_gen_time);
+  printf("Key generation (without inserting) of %lld keys required %f sec.\n",
+	 MAX_KEYS,key_gen_time/1000000.0);
   start=gettime_us();
   for(int i=0;i<MAX_KEYS;i++) {
     if (fread(key,64,1,f)!=1) {
@@ -53,17 +60,17 @@ int main(int argc,char **argv)
   }
   end=gettime_us();
   long long key_insert_time=end-start;
-  printf("Key generation (with inserting) of %d keys required %lldusec.\n",
-	 MAX_KEYS,key_insert_time);
+  printf("Key generation (with inserting) of %lld keys required %f sec.\n",
+	 MAX_KEYS,key_insert_time/1000000.0);
   printf("Subtracting key generation time, key insertion required %.1f usec/key.\n",
 	 (key_insert_time-key_gen_time)*1.0/MAX_KEYS);
 
   // Measure density in vectors
   for(int v=0;v<NUM_VECTORS;v++) {
     int bitcount=0;
-    for(int i=0;i<VECTOR_LENGTH;i++)
+    for(unsigned long long i=0;i<VECTOR_LENGTH;i++)
       if (get_vector_bit(v,i)) bitcount++;
-    float density=bitcount*100.0/VECTOR_LENGTH;
+    double density=bitcount*100.0/VECTOR_LENGTH;
     if (density>=(MAX_KEYS*100.0/VECTOR_LENGTH)) {
       printf("Vector #%d has erroneously high density of %.2f%%.\n",
 	     v,density);
@@ -72,15 +79,19 @@ int main(int argc,char **argv)
 
   // Measure entropy of each vector, be compressing using interpolative coding.
   start=gettime_us();
-  int list[VECTOR_LENGTH];
-  long long compressed_bits=0;
   for(int v=0;v<NUM_VECTORS;v++) {
     int list_length=0;
-    for(int i=0;i<VECTOR_LENGTH;i++)
-      if (get_vector_bit(v,i)) list[list_length++]=i;
+    for(unsigned long long i=0;i<VECTOR_LENGTH;i++)
+      if (get_vector_bit(v,i)) {
+	if (list_length<MAX_KEYS) list[list_length++]=(int)i;
+	else {
+	  fprintf(stderr,"Too many bits set in vector.\n");
+	  exit(-1);
+	}
+      }
 
     // Allow plenty of space
-    range_coder *c=range_new_coder(list_length*sizeof(int)*2);
+    range_coder *c=range_new_coder(list_length*(int)sizeof(int)*2);
     ic_encode_recursive(list,list_length,VECTOR_LENGTH,c);
     range_emit_stable_bits(c);
     compressed_bits+=c->bits_used;
@@ -140,11 +151,17 @@ int main(int argc,char **argv)
 	if (query_count_tallies[i]>100) {
 	  printf(" %.1f%%",query_count_tallies[i]*100.0/(failures+successes));
 	} else printf(" %d",query_count_tallies[i]);
-      if (failures) printf(" and %.1f%% failures.",
-			   failures*100.0/(failures+successes));
+      if (failures) printf(" and %d failures.",failures);
       printf(" (from %d samples)\n",successes+failures);
     }
   }
   
-  return 0;
+
+}
+
+
+int main(void)
+{
+  printf("Vector length = %lld ($%llx)\n",VECTOR_LENGTH,VECTOR_LENGTH);
+  run_tests();
 }

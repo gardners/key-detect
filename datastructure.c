@@ -17,11 +17,20 @@
 #include "keydetect.h"
 #include "sha2.h"
 
-unsigned char bit_vectors[NUM_VECTORS][VECTOR_LENGTH>>3];
+unsigned char *bit_vectors[NUM_VECTORS]={NULL};
 
 unsigned char bits[8]={1,2,4,8,16,32,64,128};
 
-int get_vector_bit(int vector_number,int bit)
+int vector_initialise(void)
+{
+  for(int v=0;v<NUM_VECTORS;v++) {
+    bit_vectors[v]=calloc((VECTOR_LENGTH>>3)+1,1);
+    assert(bit_vectors[v]);
+  }
+  return 0;
+}
+
+int get_vector_bit(int vector_number,unsigned long long bit)
 {
   assert(vector_number>=0);
   assert(vector_number<NUM_VECTORS);
@@ -32,7 +41,7 @@ int get_vector_bit(int vector_number,int bit)
 }
 
 
-int set_vector_bit(int vector_number,int bit)
+int set_vector_bit(int vector_number,unsigned long long bit)
 {
   assert(vector_number>=0);
   assert(vector_number<NUM_VECTORS);
@@ -42,7 +51,8 @@ int set_vector_bit(int vector_number,int bit)
   return 0;
 }
 
-int key_bit_for_vector(int vector_number,unsigned char *key,int key_length)
+unsigned long long key_bit_for_vector(int vector_number,unsigned char *key,
+				      unsigned long long key_length)
 {
   unsigned char hash[crypto_hash_sha512_BYTES];
   crypto_hash_sha512_state s;
@@ -75,12 +85,16 @@ int key_bit_for_vector(int vector_number,unsigned char *key,int key_length)
   }
 #endif
 
-  unsigned int bit=hash[0]+(hash[1]<<8)+(hash[2]<<16)+(hash[3]<<24);
+  unsigned int bit
+    =(unsigned int)hash[0]
+    +((unsigned int)hash[1]<<8)
+    +((unsigned int)hash[2]<<16)
+    +((unsigned int)hash[3]<<24);
   bit=bit%VECTOR_LENGTH;
   return bit;
 }
 
-int insert_key(unsigned char *key,int key_length)
+int insert_key(unsigned char *key,unsigned long long key_length)
 {
   int i;
   for(i=0;i<NUM_VECTORS;i++) {
