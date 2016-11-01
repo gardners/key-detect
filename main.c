@@ -71,6 +71,7 @@ int main(int argc,char **argv)
   }
 
   // Measure entropy of each vector, be compressing using interpolative coding.
+  start=gettime_us();
   int list[VECTOR_LENGTH];
   long long compressed_bits=0;
   for(int v=0;v<NUM_VECTORS;v++) {
@@ -85,12 +86,14 @@ int main(int argc,char **argv)
     compressed_bits+=c->bits_used;
     range_coder_free(c);
   }
+  end=gettime_us();
   printf("Vectors compress to a total of %lld bits (%.2fMB).\n",
 	 compressed_bits,compressed_bits*1.0/(8*1024*1024));
   printf("Average compressed vector is %.2fKB\n",
 	 compressed_bits*1.0/(8*1024)/NUM_VECTORS);
   printf("Average compressed query data should be %.4fKB\n",
 	 compressed_bits*1.0/(8*1024)*NUM_QUERIES/NUM_VECTORS);
+  printf("Compressing all vectors took %fsec\n",(end-start)/1000000.0);
   
 
   // Now look-up each key to make sure we can find it
