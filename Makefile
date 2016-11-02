@@ -12,4 +12,4 @@ SOURCES=datastructure.c main.c sha2.c arithmetic.c gsinterpolative.c
 all:	test
 
 test:	$(HEADERS) $(SOURCES)
-	$(CC) $(COPT) $(LOPT) -o test $(SOURCES)
+	$(CC) $(COPT) $(LOPT) -o test $(SOURCES) -lz

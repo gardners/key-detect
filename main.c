@@ -3,6 +3,9 @@
 #include <time.h>
 #include <sys/time.h>
 #include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <zlib.h>
 
 #include "keydetect.h"
 #include "arithmetic.h"
@@ -95,6 +98,31 @@ int run_tests(void)
   printf("Compressing each vector...\n");
   start=gettime_us();
   for(int v=0;v<NUM_VECTORS;v++) {
+
+    // Compare zlib and interpolative coder compression performance
+    int zlib_bytes=0;
+    {
+      z_stream strm;
+      unsigned char out_buffer[(VECTOR_LENGTH>>3)+1024];
+      /* allocate deflate state */
+      strm.zalloc = Z_NULL;
+      strm.zfree = Z_NULL;
+      strm.opaque = Z_NULL;
+      int ret = deflateInit(&strm, 9);
+      if (ret != Z_OK)
+        return ret;
+      strm.avail_in=VECTOR_LENGTH>>3;
+      strm.next_in=bit_vectors[v];
+
+      strm.next_out = out_buffer;
+      strm.avail_out = sizeof out_buffer;
+
+      ret = deflate(&strm, 1);    /* no bad return value */
+      assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
+      zlib_bytes = (sizeof out_buffer) - strm.avail_out;             
+      (void)deflateEnd(&strm);
+    }
+    
     int list_length=0;
     for(unsigned long long i=0;i<VECTOR_LENGTH;i++)
       if (get_vector_bit(v,i)) {
@@ -110,6 +138,10 @@ int run_tests(void)
     ic_encode_recursive(list,list_length,VECTOR_LENGTH,c);
     range_emit_stable_bits(c);
     compressed_bits+=c->bits_used;
+
+    printf("Vector #%d : zlib = %f KB, interpolative = %f KB\n",
+	   v,zlib_bytes*1.0/1024,c->bits_used*1.0/8192);
+    
     range_coder_free(c);
 
     if (last_time!=time(0)) {

@@ -4,7 +4,7 @@
 #define NUM_VECTORS 20
 
 // Should be at least 10x the max number of keys to be stored
-#define MAX_KEYS (100000000LL)
+#define MAX_KEYS (1000000LL)
 #define VECTOR_LENGTH (MAX_KEYS*10LL)
 
 // Each query reduces the false positive rate by ~10x,
