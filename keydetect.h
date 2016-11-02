@@ -4,12 +4,14 @@
 #define NUM_VECTORS 20
 
 // Should be at least 10x the max number of keys to be stored
-#define MAX_KEYS (10000000LL)
+#define MAX_KEYS (100000000LL)
 #define VECTOR_LENGTH (MAX_KEYS*10LL)
 
-// Each query reduces the false positive rate by ~16x,
-// so 8 queries reduces our false positive rate to less than 2^(-64)
-#define NUM_QUERIES 8
+// Each query reduces the false positive rate by ~10x,
+// so 8 queries reduces our false positive rate to less than 10^(-8)
+// (1 in 100 million).  The actual error rate is a bit higher, so we need
+// either more queries, or less dense vectors.
+#define NUM_QUERIES 12
 
 int insert_key(unsigned char *key,unsigned long long key_length);
 int get_vector_bit(int vector_number,
